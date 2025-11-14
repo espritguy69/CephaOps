@@ -1,3 +1,9 @@
+ORDERS_MODULE.md
+
+(Combined: Setup + Technical Spec + Storybook)
+
+This is the foundation module that all other modules depend on — parsing, scheduling, inventory, KPI, dockets, invoicing, and reporting all orbit around Orders.
+
 # ORDERS MODULE  
 ### (Setup + Technical Specification + Storybook)
 
