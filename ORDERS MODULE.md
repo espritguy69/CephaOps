@@ -80,7 +80,16 @@ Required for all partners:
 - IsStandbyPortOverride (true if using standby port like 32 in 1:32 splitter)
 
 ### Workflow Status
-
+Pending
+Assigned
+OnTheWay
+MetCustomer
+OrderCompleted
+DocketsReceived
+DocketsUploaded
+ReadyForInvoice
+Invoiced
+Completed
 
 ### Assurance-Specific Fields
 
