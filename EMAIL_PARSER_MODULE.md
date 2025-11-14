@@ -190,3 +190,171 @@ This module ensures all data passed to the Orders module is:
   "awoId": null,
   "rawEmailId": "MSG124556789"
 }
+
+2.5 Validation Before Order Creation
+Required fields:
+
+ServiceId
+
+Partner
+
+AppointmentStart
+
+CustomerName
+
+ServiceAddress
+
+Extra for Assurance:
+
+TicketId
+
+AwoId
+
+If missing:
+
+Parser logs error
+
+Creates RejectedEmail record
+
+Sends alert to admin
+
+3. STORYBOOK (Narrative Understanding)
+3.1 Story: The Email Arrives
+
+TIME sends:
+
+APPMT - CEPHAS TRADING & SERVICES
+TBBNA261593G
+TTKT202511138603863
+AWO437884
+Appointment: 14 Nov 2025, 1pm
+
+The parser reads this email.
+
+What the parser sees:
+
+Subject contains TTKT and AWO → Assurance
+
+Body contains structured customer info
+
+Appointment is present
+
+ServiceId is present
+
+The parser extracts all fields → creates Assurance Order.
+
+3.2 Story: Excel Activation Email
+
+TIME sends an Excel attachment:
+
+CustomerName = COBNB SDN BHD
+
+ServiceId = TBBNB062587G
+
+AppointmentStart = 14 Nov 2025, 10am
+
+Package = TIME Fibre 200Mbps
+
+SplLiter details empty
+
+Parser:
+
+Opens Excel
+
+Reads known coordinates
+
+Extracts fields
+
+Converts address to clean string
+
+Identifies OrderType = Activation
+
+Order is created automatically.
+
+3.3 Story: Modification Email
+
+Excel contains:
+
+Old Address
+
+New Address
+
+SerialNumber
+
+ONU Password
+
+CustomerName
+
+Relocation remark
+
+Parser identifies:
+
+Modification
+
+TaskType = Modification
+
+Creates the order.
+
+3.4 Story: Manual Order Inside Email Body
+
+Someone sends:
+
+Please assign SI to install for
+Customer: John Tan
+ServiceID: DIGI12345
+Date: Tomorrow morning 10am
+Address: 12, Jalan Putra Prima, Puchong
+
+Parser:
+
+Detects text patterns
+
+Extracts fields
+
+Converts datetime (“tomorrow morning 10am”) → actual timestamp
+
+Creates order under DIGI partner
+
+3.5 Story: Assurance Troubleshooting
+
+Key content:
+
+Problem: Link Down
+ONU Status: Offline
+Router Model: HG8145V5
+Appointment: 13:00
+TTKT + AWO provided
+
+Parser recognises:
+
+Assurance type
+
+Mandatory fields → OK
+
+Extracts all relevant diagnostic info
+
+Order is created and routed to scheduler.
+
+3.6 Story: Data Quality Guarantees
+
+Parser enforces:
+
+No garbage datetime
+
+No invalid phone numbers
+
+No inconsistent addresses
+
+No missing service IDs
+
+If something is unclear:
+
+Parser creates EmailPendingReview
+
+Admin dashboard will show
+
+Admin can manually create the order
+
+Nothing is ever lost.
+
+END OF EMAIL PARSER MODULE
