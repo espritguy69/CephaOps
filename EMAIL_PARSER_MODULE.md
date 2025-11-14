@@ -1,3 +1,10 @@
+📘 EMAIL_PARSER_MODULE.md
+(Combined: Setup + Technical Specification + Storybook)
+
+This module is extremely important because your entire workflow begins with an email — Activation, Modification, Cancellation, SDU/RDF jobs, and TIME Assurance (TTKT + AWO).
+
+This document ensures Cursor AI understands EXACTLY how every email/attachment becomes an Order.
+
 # EMAIL PARSER MODULE  
 ### (Setup + Technical Specification + Storybook)
 
@@ -167,7 +174,6 @@ This module ensures all data passed to the Orders module is:
 ---
 
 ## 2.4 Output to Orders Module
-
 ### Final JSON sent to Orders module:
 
 ```json
@@ -190,7 +196,7 @@ This module ensures all data passed to the Orders module is:
   "awoId": null,
   "rawEmailId": "MSG124556789"
 }
-
+```
 2.5 Validation Before Order Creation
 Required fields:
 
@@ -358,3 +364,6 @@ Admin can manually create the order
 Nothing is ever lost.
 
 END OF EMAIL PARSER MODULE
+### Final JSON sent to Orders module:
+
+
