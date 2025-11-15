@@ -1,51 +1,34 @@
-📘 INVOICING_MODULE.md
-(Combined: Setup + Technical Specification + Storybook)
+1️⃣ Updated INVOICING_MODULE.md (full file)
 
-This module handles:
-
-Invoice creation
-
-PDF generation
-
-Mapping partner invoice formats
-
-Payment tracking
-
-Rejection tracking
-
-45-day credit terms
-
-Per-job revenue vs KPI penalties (future)
-
-The invoicing workflow integrates tightly with:
-
-Orders Module
-
-Dockets Module
-
-Inventory
-
-Scheduler
-
-Partner-specific business rules
+You can paste this as a full replacement.
 
 # INVOICING MODULE  
-### (Setup + Technical Specification + Storybook)
+### (Setup + Technical Specification + Storybook – UPDATED WITH PORTAL SUBMISSION ID)
 
 ---
 
-# 1. SETUP OVERVIEW
+# 1. PURPOSE
 
-The Invoicing Module ensures:
+The Invoicing Module is responsible for:
 
-1. **Every completed job becomes a billable item**  
-2. **Invoices follow partner billing formats**  
-3. **Admin can generate PDF and upload to TIME Portal**  
-4. **Payment terms (45 days) are tracked precisely**  
-5. **Rejection handling**  
-6. **Revenue reporting with performance penalties (future)**
+- Turning completed & docket-verified orders into invoices  
+- Generating invoice documents (PDF)  
+- Recording **partner portal submission details** (Submission ID, URL, status)  
+- Tracking payment terms (e.g. 45 days for TIME)  
+- Tracking invoice status (Draft → Uploaded → Paid / Rejected)  
+- Feeding financial data into Reporting & SI payment calculations  
 
-All billing must be consistent, auditable, and linked directly to the Order.
+It sits **after**:
+
+- Orders  
+- Status & KPI  
+- Dockets  
+
+and **before**:
+
+- Reporting  
+- Finance workflows  
+- SI payment logic (future module)
 
 ---
 
@@ -53,353 +36,373 @@ All billing must be consistent, auditable, and linked directly to the Order.
 
 ---
 
-# 2.1 Invoice Lifecycle
+## 2.1 Invoice Entity Structure
 
-The lifecycle of an invoice:
+Each invoice is tied to exactly one order.
 
+### Core Fields
 
+```text
+Invoice
+- InvoiceId              (internal PK)
+- OrderId                (FK → Orders)
+- PartnerId              (FK → Partners)
+- InvoiceNumber          (string, formatted per partner)
+- Amount                 (decimal)
+- Currency               (e.g. MYR)
+- GeneratedAt            (datetime)
+- UploadedAt             (datetime, when uploaded to portal)
+- DueDate                (datetime, e.g. UploadedAt + PaymentTermsDays)
+- PaidAt                 (datetime, when payment received)
+- PaymentRef             (string, bank reference / notes)
+- Status                 (Draft / Uploaded / Paid / Rejected / Cancelled)
 
-DocketsUploaded
-↓
-ReadyForInvoice
-↓
-InvoiceCreated
-↓
-PDFGenerated
-↓
-UploadedToPartner
-↓
-AwaitingPayment (45 days SLA)
-↓
-Paid
-↓
-Closed
+NEW: Partner Portal Submission Tracking
 
+These fields link your invoice to the partner portal submission:
 
----
-
-# 2.2 Invoice Entity Structure
-
-Each invoice contains:
-
-### Identity
-- **InvoiceId** (internal)
-- **InvoiceNumber** (generated per partner rule)
-- **InvoiceDate**
-- **Partner** (TIME / Celcom / Digi / UMobile)
-- **BillingPeriod** (optional)
-
-### Relationship to Orders
-- **LinkedOrders** (list of OrderIds)
-- **TotalAmount**
-- **AmountPerOrder**
-
-### PDF Metadata
-- **PdfFilePath**
-- **GeneratedAt**
-- **GeneratedBy**
-
-### Status
+- PortalSubmissionId       (string, REQUIRED when marking as uploaded)
+- PortalSubmissionUrl      (string, optional deep-link to portal)
+- PortalSubmissionStatus   (string, optional – e.g. Submitted / Processing / Accepted / Rejected)
 
 
-Draft
-Generated
-Uploaded
-AwaitingPayment
-Rejected
-Paid
-Closed
+Rules:
+
+When Status moves to Uploaded, PortalSubmissionId must be provided.
+
+PortalSubmissionUrl is optional but recommended for quick access.
+
+PortalSubmissionStatus is optional text; can be updated later if you ever build sync with partner portal.
+
+2.2 Invoice Lifecycle
+States
+Draft          – auto-created when ReadyForInvoice
+Uploaded       – after admin uploads invoice PDF + captures PortalSubmissionId
+Paid           – after finance confirms payment
+Rejected       – if partner rejects invoice
+Cancelled      – manually cancelled (internal)
 
 
-### Payment Tracking
-- PaymentReceivedDate
-- PaymentRefNumber
-- BankSlipAttachment
+Key transitions:
 
-### Rejection Tracking
-- RejectionReason
-- RejectionTimestamp
-- RejectionRemarks
+ReadyForInvoice (Order) → Draft (Invoice)
 
----
+Draft → Uploaded (requires portal submission info)
 
-# 2.3 Invoice Line Structure (Per Job)
+Uploaded → Paid (requires payment info)
 
-Each job contributes one “invoice line”.
+Uploaded → Rejected (requires rejection reason)
 
-| Field | Meaning |
-|--------|----------|
-| OrderId | Job reference |
-| ServiceId | For partner portal |
-| TicketId / AWO | For Assurance jobs |
-| WorkType | Activation/Modification/Assurance |
-| Description | Generated text |
-| Rate | Based on SI rate (settings module) |
-| Quantity | Usually 1 |
-| Amount | Rate × Quantity |
-| KPIImpact | (Future) penalty/bonus |
-| MaterialsCharge | (Optional) |
-| TotalLineAmount | Amount + MaterialsCharge |
+Rejected → Uploaded (after correction & resubmission)
 
----
+2.3 Generating an Invoice
 
-# 2.4 Rate Calculation Rules
+Triggered when an order reaches:
 
-Each partner + job type has fixed rates:
+Order.Status = ReadyForInvoice
 
-| Partner | Activation | Modification | Assurance | SDU | RDF Pole |
-|---------|------------|--------------|-----------|-----|-----------|
-| TIME | X | Y | Z | A | B |
-| Celcom | X1 | Y1 | Z1 | A1 | B1 |
-| Digi | X2 | Y2 | Z2 | A2 | B2 |
 
-Rates stored in Settings → Installer Rates.
+System can:
 
-Installer rates do NOT affect invoice amount but used for SI payment later.
+Auto-generate invoice on status change, or
 
----
+Allow admin to click "Generate Invoice".
 
-# 2.5 Automatic Invoice Generation Rules
+Required data from Order:
 
-When an order transitions to **ReadyForInvoice**, system performs:
+ServiceId
 
-### 1. Check all prerequisites:
-- Docket validated  
-- SplitterPort assigned  
-- Materials consumed logged  
-- No blockers  
-- OrderCompleted timestamp is present  
+PartnerId
 
-### 2. Determine partner billing rules:
-- Single-job invoice (common)
-- Batch invoice (future)
+Customer Name
 
-### 3. Generate InvoiceLine for that order:
-- Job type  
-- Rate  
-- Amount  
-- Description  
+Building
 
-### 4. Accumulate into Invoice entity:
-- If batching → multiple lines  
-- If one job per invoice → generate one invoice per order
+Job Type (Prelaid / Non-Prelaid / SDU / FTTR / FTTC / RDF POLE / Assurance)
 
-### 5. Set status: **Draft**
+Internal rate rules (from Partner + Services settings)
 
----
+SI rates (if needed for internal reporting)
 
-# 2.6 PDF Generation Specification
+Invoice Amount
 
-PDF must contain:
+Pulled from partner rate tables:
 
-### Header:
-- Cephas Sdn Bhd logo  
-- Partner name  
-- Invoice Number  
-- Invoice Date  
-- Address  
+Rate determined by:
+- Partner
+- OrderType (Activation / Modification / Assurance / SDU / RDF Pole)
+- TaskType if needed
 
-### Body Table:
-Columns:
-- Service ID  
-- Ticket/AWO (if any)  
-- Work Type  
-- Building  
-- Order Completed Date  
-- Amount  
 
-### Footer:
-- Payment instructions  
-- Bank details  
-- Terms  
-- Prepared by / Approved by  
+Invoice amount = Partner Rate x (Quantity 1)
+(Future: multi-line invoices if needed.)
 
-PDF generation MUST be deterministic.
+2.4 Invoice Document (PDF)
 
----
+The module generates a PDF document that will be:
 
-# 2.7 Partner Portal Upload Tracking
+Downloaded by admin
 
-Once admin uploads PDF to TIME Portal:
+Manually uploaded to TIME/Celcom/Digi/U Mobile portal
 
-Admin presses:
-**“Mark as Uploaded”**
+Minimum contents:
 
-System sets:
+Cephas name & address
 
-- InvoiceStatus → Uploaded  
-- UploadedAt (timestamp)
-- UploadedBy (admin user)
+Partner name
 
-Now system automatically tracks:
+Invoice number & date
 
-**Due Date = UploadedAt + 45 days**
+Service ID / Ticket ID / AWO (for TIME Assurance)
 
----
+Customer & building details
 
-# 2.8 Rejection Workflow
+Job description (Activation, Outdoor Relocation, Assurance visit, etc.)
+
+Amount & currency
+
+Payment terms (e.g. 45 days)
+
+File metadata stored in DB:
+
+- InvoiceFilePath
+- InvoiceFileName
+- FileSize
+- MimeType
+
+2.5 Portal Submission Tracking (CRITICAL)
+
+Once admin uploads invoice in partner portal, the portal will generate a Submission ID.
+
+Admin must immediately record it in CSIOS.
+
+UI Flow
+
+On invoice detail view:
+
+Invoice #: TIME-INV-2025-00123
+Status  : Draft
+
+[ I have uploaded invoice to partner portal ]
+
+→ Opens form:
+    Portal Submission ID: [ SUBM-20251120-123456 ]
+    Portal Submission URL: [ https://portal.time.com/... ] (optional)
+    Portal Submission Status: [ Submitted ] (optional)
+    Uploaded At: [ 2025-11-20T09:30:00 ]
+
+[ Save & Mark as Uploaded ]
+
+System Logic
+
+On save:
+
+Set UploadedAt from form
+
+Set PortalSubmissionId (required)
+
+Set PortalSubmissionUrl if provided
+
+Set PortalSubmissionStatus if provided (e.g. Submitted)
+
+Set Invoice.Status = Uploaded
+
+Calculate DueDate = UploadedAt + Partner.PaymentTermsDays (e.g. 45 days)
+
+Now invoice appears in:
+
+Invoices list as Uploaded
+
+Finance dashboard with correct payment due date
+
+Reporting for outstanding invoices
+
+2.6 Invoice Payment Handling
+
+When payment is received:
+
+UI
+
+Finance opens invoice:
+
+Invoice #: TIME-INV-2025-00123
+Status  : Uploaded
+
+[ Mark as Paid ]
+
+Payment Date: [ 2026-01-05 ]
+Payment Ref : [ BANK-FT-12345 ]
+Notes       : [ Paid & matched to bank statement ]
+
+[ Save ]
+
+
+System:
+
+Sets PaidAt
+
+Sets PaymentRef
+
+Sets Status = Paid
+
+Updates Order.Status → Completed (if everything else done)
+
+2.7 Invoice Rejection Handling
 
 If partner rejects invoice:
 
+UI
+
 Admin selects:
 
+[ Mark as Rejected ]
 
-Mark as Rejected
+Reason: [ Incorrect rate / Missing docket / etc. ]
+Remarks: [ TIME rejected due to miscalculated rate, to reissue ]
 
-
-System requires:
-
-- RejectionReason  
-- Screenshot / file attachment  
-- Remarks  
-
-Order is moved back to:
-**ReadyForInvoice**
-
-InvoiceRecord remains but closed as:
-**Rejected**
-
----
-
-# 2.9 Payment Tracking Workflow
-
-When bank transfers payment:
-
-Admin enters:
-
-- PaymentReceivedDate  
-- PaymentRefNo  
-- BankSlip attachment  
-
-System updates:
-
-- InvoiceStatus → Paid  
-- Linked orders → Completed  
-- Close invoice as **Closed**
-
----
-
-# 2.10 KPI and Financial Link (Future Module)
-
-Future functionality:
-
-- Penalty for late job completion  
-- Bonus for fast assurance repair  
-- Job scoring  
-- Installer payout adjustment  
-
-For now, KPI does not affect invoice amount.
-
----
-
-# 3. STORYBOOK (Narrative Understanding)
-
----
-
-## 3.1 Story: A job becomes billable
-
-Order transitions:
-
-
-
-DocketsUploaded → ReadyForInvoice
-
-
-System checks:
-
-- No blockers  
-- Materials consumed  
-- Splitter assigned  
-- All timestamps OK  
-
-System automatically creates:
-
-- InvoiceLine  
-- Invoice entity (single-job invoice)  
-
----
-
-## 3.2 Story: PDF generated
-
-Admin clicks:
-
-“Generate Invoice”
 
 System:
 
-- Creates PDF  
-- Saves to folder  
-- Sets InvoiceStatus = Generated  
+Sets Status = Rejected
 
----
+Logs rejection reason
 
-## 3.3 Story: Upload to TIME Portal
+Keeps existing PortalSubmissionId for reference
 
-Admin uploads PDF manually in TIME Portal.
+Later, after correction:
 
-Then clicks:
-**"Mark As Uploaded"**
+Admin regenerates invoice (maybe new number)
 
-System sets:
+Uploads again in portal
 
-- UploadedAt = now  
-- DueDate = UploadedAt + 45 days  
+Enters new PortalSubmissionId
 
-Invoice now in **AwaitingPayment**.
+Status returns to Uploaded
 
----
+2.8 Invoice List & Filters
 
-## 3.4 Story: Payment Arrives
+Invoice list page columns:
 
-Bank pays RM 75 for 1 activation.
+InvoiceNumber
 
-Admin:
+Partner
 
-- Clicks “Mark as Paid”  
-- Uploads bank slip  
-- Adds PaymentRef  
+ServiceId
 
-System:
+Status
 
-- InvoiceStatus = Paid  
-- OrderStatus = Completed  
-- Revenue recognized  
+Amount
 
----
+GeneratedAt
 
-## 3.5 Story: Rejection from Partner
+UploadedAt
 
-TIME says:
+DueDate
 
-> Wrong serial number  
-> Please resubmit  
+PaidAt
 
-Admin:
+PortalSubmissionId (NEW)
 
-- Picks invoice  
-- Clicks “Reject Invoice”  
-- Attaches TIME screenshot  
-- Adds remarks  
+Filters:
 
-System:
+By status (Draft / Uploaded / Paid / Rejected)
 
-- InvoiceStatus = Rejected  
-- OrderStatus = ReadyForInvoice  
-- New invoice must be generated  
+By partner
 
----
+By date range
 
-## 3.6 Story: Finance Dashboard
+By overdue / on-time
 
-Daily snapshot includes:
+2.9 Reporting Integration
+Reports using Invoice data:
 
-- Outstanding invoices  
-- Due soon invoices  
-- Late invoices (>45 days)  
-- Rejected invoices  
-- Revenue per partner  
-- Monthly invoice totals  
+Invoice Aging Report
 
----
+Days until due / days overdue
 
-# END OF INVOICING MODULE
+By partner
+
+By SI / region (optional)
+
+Partner Performance Report
+
+How many invoices rejected per partner
+
+Average time from ReadyForInvoice → Uploaded → Paid
+
+Cashflow Forecast
+
+Upcoming due amounts per week (based on DueDate)
+
+All of these now can include and reference:
+
+PortalSubmissionId
+
+PortalSubmissionStatus
+
+for quick cross-check against partner portal.
+
+3. STORYBOOK (NARRATIVE USE CASES)
+3.1 Story: Standard TIME Activation
+
+Order moves to ReadyForInvoice.
+
+System auto-generates invoice Draft.
+
+Admin opens invoice, checks amount.
+
+Admin downloads PDF, uploads to TIME portal.
+
+TIME portal shows Submission ID = SUBM-20251120-123456.
+
+Admin returns to CSIOS → enters:
+
+PortalSubmissionId = SUBM-20251120-123456
+
+UploadedAt = actual time
+
+CSIOS:
+
+Sets Status = Uploaded
+
+Sets DueDate = UploadedAt + 45 days
+
+Finance dashboard now shows invoice as Awaiting Payment, with portal reference.
+
+3.2 Story: Invoice Rejected, Resubmitted
+
+TIME rejects invoice (wrong rate).
+
+Admin marks invoice Rejected, with reason.
+
+Admin corrects rate / regenerates invoice PDF.
+
+Admin re-uploads to TIME portal; portal generates new submission ID
+
+e.g. SUBM-20251122-987654
+
+Admin calls “Mark as Uploaded” again for new invoice:
+
+New PortalSubmissionId saved
+
+New invoice now tracks correctly; old rejected entry kept for audit.
+
+3.3 Story: Cross-check with Partner Portal
+
+During audit, manager wants to confirm if a missing payment matches portal.
+
+They filter in CSIOS:
+
+Partner = TIME
+
+Status = Uploaded
+
+PortalSubmissionId = SUBM-20251120-123456
+
+They see:
+
+Invoice amount, due date, portal link.
+
+They click portal link and verify status in TIME portal.
+
+END OF INVOICING MODULE (UPDATED)
