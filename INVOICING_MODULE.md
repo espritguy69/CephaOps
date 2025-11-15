@@ -1,7 +1,5 @@
 1️⃣ Updated INVOICING_MODULE.md (full file)
 
-You can paste this as a full replacement.
-
 # INVOICING MODULE  
 ### (Setup + Technical Specification + Storybook – UPDATED WITH PORTAL SUBMISSION ID)
 
