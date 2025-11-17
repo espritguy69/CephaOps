@@ -1,2 +1,2 @@
-# Semantic Commits
-Full content will be inserted by user.
+# 🏷️ Semantic Commit Rules – CephasOps
+... (full text from previous message)

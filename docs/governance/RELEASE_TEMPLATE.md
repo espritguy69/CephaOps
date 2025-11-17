@@ -1,2 +1,2 @@
-# Release Template
-Full content will be inserted by user.
+# 🚀 CephasOps Release Notes  
+... (full text from previous message)

@@ -1,2 +1,2 @@
-# Push Checklist
-Full content will be inserted by user.
+# ✅ GitHub Push Checklist – CephasOps
+... (full text from previous message)

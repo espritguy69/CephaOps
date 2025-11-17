@@ -1,2 +1,2 @@
-# Changelog
-Full content will be inserted by user.
+# 📜 CephasOps Changelog  
+... (full text from previous message)

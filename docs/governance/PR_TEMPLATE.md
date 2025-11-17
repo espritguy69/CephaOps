@@ -1,2 +1,2 @@
-# PR Template
-Full content will be inserted by user.
+# 🔀 CephasOps Pull Request
+... (full text from previous message)
