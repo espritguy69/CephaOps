@@ -1,667 +1,560 @@
-# PHASE1_DOMAIN_MODELS  
+# PHASE1\_DOMAIN\_MODELS.md
+
+\# PHASE1\_DOMAIN\_MODELS
+
 CephasOps – Domain Model Scope (Phase 1: ISP Vertical)
 
-Phase 1 delivers the **ISP operations core**, covering:
 
-- TIME activation & assurance orders  
-- Scheduler & Service Installer (SI) workflows  
-- Building & splitter management  
-- Inventory & materials  
-- Dockets → Invoices → Submission ID  
-- RMA (faulty routers/ONUs)  
-- Multi-company & RBAC  
-- Notifications  
-- Parser rules  
-- PNL basics (cost centres)
 
-This document defines the **domain entities, aggregates, value objects, and required audit fields** for Phase 1.
+Phase 1 delivers the ISP operations core:
 
-> **Convention:**  
-> Unless explicitly noted, all “business” entities are **company-scoped** and carry:
-> - `CompanyId`
-> - `CreatedAt`
-> - `UpdatedAt`
-> - `CreatedBy`
-> - `UpdatedBy`
 
----
 
-## 1. Core Multi-Company & RBAC
+\- TIME activation \& assurance orders
 
-These models define how multiple companies are represented, and how users + roles are scoped per company.
+\- Scheduler \& SI workflows
 
-### 1.1 Company
+\- Buildings \& splitters
 
-Represents an operating entity (e.g. Cephas Trading, Cephas Sdn. Bhd., Kingsman Classic Services, Menorah Travel & Tours).
+\- Inventory \& RMA
 
-**Fields**
+\- Dockets → Invoices → Submission ID
 
-- `CompanyId` (GUID)
-- `Name`
-- `Vertical` (enum: `ISP`, `Barbershop`, `Travel` – Phase 1: mostly `ISP`)
-- `IsActive` (bool)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- Multi-company \& RBAC
+
+\- Notifications \& parser rules
+
+\- PNL basics via cost centres
+
+
+
+All domain entities derive from `CompanyEntityBase` (see `MULTI\_COMPANY\_IMPLEMENTATION.md`).
+
+
 
 ---
 
-### 1.2 User
 
-Represents a real person with login access.
 
-Typical roles:
+\## 1. Multi-Company \& RBAC
 
-- Director  
-- Admin / Operations  
-- Scheduler  
-- Warehouse  
-- Finance  
-- ServiceInstaller (SI)  
-- Viewer / Read-only  
 
-A User is global, but **permissions are per company** via `UserCompanyRole`.
 
-**Fields**
+\### Company
 
-- `UserId` (GUID)
-- `Name`
-- `Email`
-- `Phone`
-- `PasswordHash`
-- `IsActive` (bool)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
-**Relations**
 
-- `UserCompanyRoles` (collection of `UserCompanyRole` records)
+\- `CompanyId` (Guid)
 
----
+\- `Name`
 
-### 1.3 Role
+\- `Vertical` (ISP | Barbershop | Travel)
 
-Role definition at company level.
+\- `IsActive`
 
-Examples:
+\- Audit fields.
 
-- `Director`  
-- `Admin`  
-- `Scheduler`  
-- `Warehouse`  
-- `Finance`  
-- `ServiceInstaller`  
-- `Viewer`  
 
-**Fields**
 
-- `RoleId` (GUID)
-- `CompanyId`
-- `Name` (e.g. `"Scheduler"`)
-- `Description`
-- `IsSystemDefault` (bool – distinguish built-in vs custom)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\### User
 
----
 
-### 1.4 Permission
 
-Atomic permission used to compose roles.
+\- `UserId`
 
-Examples:
+\- `Name`
 
-- `Orders.View`, `Orders.Edit`, `Orders.Assign`
-- `Scheduler.View`, `Scheduler.Edit`
-- `Inventory.View`, `Inventory.Adjust`
-- `Invoices.View`, `Invoices.Approve`, `Invoices.MarkPaid`
-- `Settings.ManageParserRules`, etc.
+\- `Email`
 
-**Fields**
+\- `Phone`
 
-- `PermissionId` (GUID)
-- `Key` (string, unique, e.g. `"Orders.View"`)
-- `Description`
+\- `PasswordHash`
 
-> Note: `Permission` can be treated as global (no CompanyId) or company-scoped if needed. For simplicity you may omit `CompanyId` here and keep it system-wide.
+\- (Relationships to roles \& companies)
+
+\- Audit fields.
+
+
+
+\### Role, Permission
+
+
+
+\- `RoleId`, `CompanyId`, `Name`
+
+\- `Permissions` (collection)
+
+\- Audit fields.
+
+
+
+Permissions are conceptual (e.g., `Orders.Read`, `Inventory.Write`), implemented as enum or string.
+
+
 
 ---
 
-### 1.5 RolePermission
 
-Join entity mapping `Role` → `Permission`.
 
-**Fields**
+\## 2. Service Installers \& Partners
 
-- `RolePermissionId` (GUID)
-- `RoleId`
-- `PermissionId`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
 
-### 1.6 UserCompanyRole
+\### ServiceInstaller
 
-Maps a `User` to a `Role` for a specific `Company`.
 
-**Fields**
 
-- `UserCompanyRoleId` (GUID)
-- `UserId`
-- `CompanyId`
-- `RoleId`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `InstallerId`
 
----
+\- `CompanyId`
 
-## 2. Service Installers & Partners
+\- `Name`
 
-These models support assignment, scheduling, and KPI tracking for field technicians and partner telcos.
+\- `Type` (InHouse | Subcon)
 
-### 2.1 ServiceInstaller (SI)
+\- `Phone`
 
-Represents a technician doing on-site jobs (in-house staff or subcontractor).  
-Can optionally be linked to a `User` for PWA login.
+\- `Region`
 
-**Fields**
+\- `Skills` (comma-separated or child table)
 
-- `ServiceInstallerId` (GUID)
-- `CompanyId`
-- `DisplayName`
-- `InstallerType` (enum: `InHouse`, `Subcon`)
-- `Phone`
-- `Region` (string – e.g. “PJ”, “KL City”, “Seremban”)
-- `SkillTags` (simple string list: `["FTTH","FTTR","SDU"]`)
-- `IsActive` (bool)
-- `KpiProfileId` (optional, for future KPI configuration)
-- `UserId` (optional link to `User`)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `KpiProfileId` (optional)
+
+\- Audit fields.
+
+
+
+\### Partner
+
+
+
+\- `PartnerId`
+
+\- `Name` (e.g., TIME)
+
+\- `EmailPatterns`
+
+\- `OrderTemplateMappings` (activation, assurance, MRA)
+
+\- Audit fields.
+
+
 
 ---
 
-### 2.2 Partner
 
-Represents upstream telco or service provider (Phase 1: mainly TIME).
 
-**Fields**
+\## 3. Orders \& Status
 
-- `PartnerId` (GUID)
-- `CompanyId`
-- `Name` (e.g. `"TIME dotCom"`)
-- `Code` (e.g. `"TIME"`)
-- `EmailPatterns` (list of patterns for Parser, e.g. `["*@time.com", "noreply@time.com"]`)
-- `OrderTemplateMappings` (JSON or structured config for Excel/email parsing; keyed by rule type)
-- `IsActive` (bool)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
 
-## 3. Orders, Status & Blockers
+\### Order (Aggregate Root)
 
-These models drive the main ISP operations: activation and assurance flows.
 
-### 3.1 Order (Aggregate Root)
 
-Represents any service order from a partner:
+\- `OrderId`
 
-- Activation (FTTH/FTTO/FTTR/SDU/RDF POLE)  
-- Modification  
-- Assurance / Troubleshooting (TTKT)
+\- `CompanyId`
 
-**Fields**
+\- `OrderType` (Activation | Modification | Assurance)
 
-- `OrderId` (GUID)
-- `CompanyId`
-- `OrderType` (enum: `Activation`, `Modification`, `Assurance`)
-- `ServiceId` (string from partner, e.g. `TBBNB062587G`)
-- `PartnerId`
-- `CustomerName`
-- `CustomerPhone`
-- `CustomerEmail` (optional)
-- `Address` (value object: `Line1`, `Line2`, `Postcode`, `City`, `State`)
-- `BuildingId` (nullable – some orders may be address-only)
-- `AppointmentDateTime` (UTC or with timezone)
-- `AssignedInstallerId` (nullable `ServiceInstallerId`)
-- `CurrentStatus` (enum: `Pending`, `Assigned`, `OnTheWay`, `MetCustomer`, `OrderCompleted`, `DocketsReceived`, `DocketsUploaded`, `Cancelled`, etc.)
+\- `ServiceId`
 
-**Assurance-specific fields (optional)**
+\- `TTKT` (optional)
 
-- `TtktId` (TTKT code from partner)
-- `AwoId` (AWO ID)
-- `IssueDescription` (e.g. “Link Down, fibre issue”)
-- `WarrantyStatus` (string or enum)
-- `AssignUrl` (partner portal link to assign SI)
-- `DocketUrl` (partner portal link to upload docket)
+\- `AWO` (optional)
 
-**Materials & splitter**
+\- `CustomerName`
 
-- `MaterialsPlanned` (collection of `OrderMaterialPlan` value objects)
-- `MaterialsUsed` (collection of `OrderMaterialUsage` value objects)
-- `SplitterId` (nullable – building’s splitter)
-- `SplitterPortNumber` (nullable)
+\- `CustomerPhone`
 
-**Dockets & invoicing**
+\- `Address` (value object)
 
-- `DocketsReceivedAt` (nullable DateTime)
-- `DocketsUploadedAt` (nullable DateTime)
-- `InvoiceId` (nullable – link to `Invoice` once billed)
+\- `BuildingId`
 
-**Audit**
+\- `AppointmentDateTime`
 
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `PartnerId`
 
-**Typical behaviours**
+\- `AssignedInstallerId` (nullable)
 
-- Assign/reassign SI  
-- Change status (pending→assigned→on the way→…)  
-- Reschedule appointment  
-- Add/remove blockers  
-- Set splitter & port (respecting standby rules)  
-- Record docket received/uploaded timestamps  
-- Link/unlink invoice  
+\- `CurrentStatus`
 
----
+\- `PortalAssignUrl`
 
-### 3.2 OrderStatusLog
+\- `PortalDocketUrl`
 
-Immutable record of every status change (basis for KPIs like on-time arrival).
+\- `MaterialsPlanned` (child table)
 
-**Fields**
+\- `MaterialsUsed` (child table)
 
-- `OrderStatusLogId` (GUID)
-- `OrderId`
-- `CompanyId`
-- `PreviousStatus`
-- `NewStatus`
-- `ChangedAt`
-- `ChangedBy` (UserId or pseudo-user for SI)
-- `Remarks`
-- `CreatedAt` (often same as `ChangedAt`)
-- `CreatedBy` (UserId)
+\- Audit fields.
+
+
+
+Behaviour (methods):
+
+
+
+\- AssignInstaller()
+
+\- ChangeStatus()
+
+\- Reschedule()
+
+\- AttachSplitterPort()
+
+\- AttachDocket()
+
+\- MarkCompleted()
+
+\- LinkInvoiceLine()
+
+
+
+\### OrderStatusLog
+
+
+
+\- `OrderStatusLogId`
+
+\- `OrderId`
+
+\- `PreviousStatus`
+
+\- `NewStatus`
+
+\- `Timestamp`
+
+\- `ActorUserId` or `ActorInstallerId`
+
+\- `Remarks`.
+
+
 
 ---
 
-### 3.3 OrderBlocker (optional but recommended)
 
-Tracks blockers and their durations.
 
-**Fields**
+\## 4. Buildings \& Splitters
 
-- `OrderBlockerId` (GUID)
-- `OrderId`
-- `CompanyId`
-- `BlockerType` (enum: `Customer`, `Building`, `Network`, `Partner`, `Internal`)
-- `OpenedAt`
-- `OpenedBy` (UserId)
-- `ClosedAt` (nullable)
-- `ClosedBy` (nullable)
-- `Remarks`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
 
-### 3.4 Order Note (optional/simple)
+\### Building
 
-Simple note log for internal comments.
 
-**Fields**
 
-- `OrderNoteId` (GUID)
-- `OrderId`
-- `CompanyId`
-- `Note`
-- `CreatedAt`
-- `CreatedBy`
-- `UpdatedAt`, `UpdatedBy` (if editable)
+\- `BuildingId`
 
----
+\- `CompanyId`
 
-## 4. Buildings, Splitters & Ports
+\- `Name`
 
-These models describe where orders happen and how splitter capacity is managed.
+\- `ShortName`
 
-### 4.1 Building
+\- `Address`
 
-Represents a physical site:
+\- `Type` (Prelaid | NonPrelaid | SDU | RDFPole)
 
-- Condo / apartment  
-- Shoplot / commercial building  
-- Landed SDU  
-- RDF Pole deployment  
+\- Audit fields.
 
-**Fields**
 
-- `BuildingId` (GUID)
-- `CompanyId`
-- `Name` (e.g. `"Royce Residence"`)
-- `ShortName` (e.g. `"ROYCE_RES"`)
-- `Address` (value object)
-- `BuildingType` (enum: `Prelaid`, `NonPrelaid`, `Sdu`, `RdfPole`)
-- `Notes` (optional)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
+\### Splitter
 
-### 4.2 Splitter
 
-Represents a fibre splitter installed within a building.
 
-**Fields**
+\- `SplitterId`
 
-- `SplitterId` (GUID)
-- `CompanyId`
-- `BuildingId`
-- `SplitterCode` (label used by field teams, e.g. `"S01-MDF-R1"`)
-- `SplitterType` (enum: `OneTo8`, `OneTo12`, `OneTo32` etc.)
-- `LocationDescription` (e.g. `"MDF Room Rack 01"`, `"Level 10 riser"`)
-- `IsActive` (bool)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `CompanyId`
+
+\- `BuildingId`
+
+\- `SplitterType` (1x8 | 1x12 | 1x32)
+
+\- `LocationDescription`
+
+\- Audit fields.
+
+
+
+\### SplitterPort
+
+
+
+\- Composite key: (`SplitterId`, `PortNumber`)
+
+\- `PortNumber` (int)
+
+\- `State` (Available | Used | Reserved | Standby)
+
+\- `UsedByOrderId` (nullable)
+
+\- `RequiresApproval` (bool)
+
+\- `ApprovalAttachmentUrl` (nullable)
+
+\- Audit fields.
+
+
 
 ---
 
-### 4.3 SplitterPort
 
-Represents a single port on a splitter.
 
-**Fields**
+\## 5. Inventory \& RMA
 
-- `SplitterPortId` (GUID)
-- `CompanyId`
-- `SplitterId`
-- `PortNumber` (int: 1…8, 1…12, 1…32)
-- `PortState` (enum: `Available`, `Used`, `Reserved`, `Standby`)
-- `OrderId` (nullable – order using this port)
-- `IsStandbyPort` (bool, e.g. `true` for port 32 on 1:32 splitters)
-- `RequiresApproval` (bool)
-- `ApprovalAttachmentUrl` (nullable – link to partner approval)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
 
-## 5. Inventory & Materials
+\### Material
 
-These models track static material definitions, their quantities, and movements.
 
-### 5.1 Material
 
-Static definition of a material such as router, ONU, fibre cable, connectors.
+\- `MaterialId`
 
-**Fields**
+\- `CompanyId`
 
-- `MaterialId` (GUID)
-- `CompanyId`
-- `Name`
-- `Sku` (optional code)
-- `Category` (enum/string: `Router`, `Onu`, `Cable`, `Connector`, `Tools`, `Other`)
-- `IsSerialised` (bool)
-- `UnitOfMeasure` (e.g. `pcs`, `meter`, `box`)
-- `DefaultPartnerId` (optional, if material is partner-owned)
-- `MinStockThreshold` (optional)
-- `MaxStockThreshold` (optional)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `Name`
 
----
+\- `Category` (Router | ONU | Cable | Connector | Tools)
 
-### 5.2 MaterialStock
+\- `IsSerialised` (bool)
 
-Represents current stock for one material at a specific location.
+\- `PartnerId` (nullable)
 
-**Location types**
+\- `Unit` (pcs | meter | box)
 
-- `Warehouse`  
-- `ServiceInstaller` (installer’s bag / van)  
-- `Customer` (installed at customer premise)  
-- `Rma` (faulty stock in RMA flow)  
+\- Audit fields.
 
-**Fields**
 
-- `MaterialStockId` (GUID)
-- `CompanyId`
-- `MaterialId`
-- `LocationType` (enum: `Warehouse`, `ServiceInstaller`, `Customer`, `Rma`)
-- `LocationRefId`  
-  - e.g. `WarehouseId` (if you later model multiple warehouses)  
-  - `ServiceInstallerId`  
-  - `OrderId` (Customer location)  
-- `Quantity`
-- `SerializedItems` (optional JSON/list of serial numbers if small)
-- `UpdatedAt`
-- `UpdatedBy`
 
----
+\### MaterialStock
 
-### 5.3 MaterialMovement
 
-Immutable record of materials moving between locations.
 
-**Examples**
+\- `MaterialStockId`
 
-- Warehouse → Installer (stock issue)  
-- Installer → Customer (installation)  
-- Installer → RMA (faulty return)  
-- RMA → Warehouse (replacements received)  
+\- `CompanyId`
 
-**Fields**
+\- `MaterialId`
 
-- `MaterialMovementId` (GUID)
-- `CompanyId`
-- `MaterialId`
-- `FromLocationType` (nullable for initial stock)
-- `FromLocationRefId` (nullable)
-- `ToLocationType`
-- `ToLocationRefId`
-- `Quantity`
-- `SerialNumbers` (optional list)
-- `OrderId` (optional – if movement is order-related)
-- `MovedAt`
-- `MovedBy` (UserId)
-- `CreatedAt` (usually same as `MovedAt`)
+\- `LocationType` (Warehouse | Installer | Customer | RMA)
 
----
+\- `LocationRefId` (InstallerId or OrderId, etc.)
 
-### 5.4 RmaRequest
+\- `Quantity`
 
-Tracks defective device RMA/MRA flow with partner.
+\- `SerialNumbers` (JSON or separate table)
 
-**Fields**
+\- Audit fields.
 
-- `RmaRequestId` (GUID)
-- `CompanyId`
-- `MaterialId`
-- `SerialNumber`
-- `PartnerId`
-- `OrderId` (optional – if tied to a specific job)
-- `Status` (enum: `Requested`, `InTransit`, `Approved`, `Rejected`, `Completed`)
-- `MraDocumentUrl` (nullable – link to MRA PDF/scan)
-- `Notes`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+
+
+\### MaterialMovement
+
+
+
+\- `MaterialMovementId`
+
+\- `CompanyId`
+
+\- `MaterialId`
+
+\- `FromLocationType`, `FromLocationRefId`
+
+\- `ToLocationType`, `ToLocationRefId`
+
+\- `Quantity`
+
+\- `SerialNumbers`
+
+\- `OrderId` (nullable)
+
+\- `Timestamp`
+
+\- `ActorUserId`.
+
+
+
+\### RmaRequest
+
+
+
+\- `RmaRequestId`
+
+\- `CompanyId`
+
+\- `MaterialId`
+
+\- `SerialNumber`
+
+\- `OrderId`
+
+\- `PartnerId`
+
+\- `Status` (Requested | InTransit | Approved | Rejected | Completed)
+
+\- `MraPdfUrl`
+
+\- Audit fields.
+
+
 
 ---
 
-## 6. Billing, Invoices & Finance
 
-These models support billing to partners and basic PNL inputs.
 
-### 6.1 Invoice (Aggregate Root)
+\## 6. Billing \& Invoices
 
-Represents a billing document to a partner, usually grouping one or more orders.
 
-**Fields**
 
-- `InvoiceId` (GUID)
-- `CompanyId`
-- `PartnerId`
-- `InvoiceNumber` (string – CephasOps internal or partner-facing number)
-- `Status` (enum: `Draft`, `ReadyForInvoice`, `Invoiced`, `Paid`, `Rejected`)
-- `InvoiceDate`
-- `SubmissionDate` (nullable – when uploaded to partner portal)
-- `PortalSubmissionId` (e.g. `SUBM-20251122-987654`)
-- `Currency`
-- `TotalAmount`
-- `Notes`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\### Invoice
 
-**Relations**
 
-- `Lines` (collection of `InvoiceLine`)
 
----
+\- `InvoiceId`
 
-### 6.2 InvoiceLine
+\- `CompanyId`
 
-Represents individual billed components, usually 1:1 with orders, but may include extra charges.
+\- `PartnerId`
 
-**Fields**
+\- `Status` (Draft | ReadyForInvoice | Invoiced | Paid | Rejected)
 
-- `InvoiceLineId` (GUID)
-- `CompanyId`
-- `InvoiceId`
-- `OrderId` (nullable – for generic or non-order charges)
-- `Description`
-- `Quantity`
-- `Rate`
-- `Amount`
-- `CreatedAt`
-- `CreatedBy`
+\- `InvoiceDate`
 
----
+\- `SubmissionDate` (nullable)
 
-## 7. Parser Rules & Notifications
+\- `PortalSubmissionId`
 
-These models drive the Email Parser Worker and system notifications.
+\- `TotalAmount`
 
-### 7.1 ParserRule
+\- Audit fields.
 
-Defines how incoming emails (and their attachments) are mapped to orders or RMA requests.
 
-**Fields**
 
-- `ParserRuleId` (GUID)
-- `CompanyId`
-- `PartnerId`
-- `RuleType` (enum: `Activation`, `Modification`, `Assurance`, `Mra`)
-- `IsActive`
-- `FromPatterns` (list of from-address patterns)
-- `SubjectPatterns` (list of subject patterns/regex)
-- `ExcelTemplateVersion` (optional string)
-- `ColumnMappings` (JSON – mapping Excel columns to fields: ServiceId, address, appointment time, etc.)
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\### InvoiceLine
+
+
+
+\- `InvoiceLineId`
+
+\- `InvoiceId`
+
+\- `OrderId`
+
+\- `Description`
+
+\- `Quantity`
+
+\- `Rate`
+
+\- `Amount`
+
+\- Audit fields (Created).
+
+
 
 ---
 
-### 7.2 NotificationSetting
 
-Controls which notifications are sent for which events and via which channels.
 
-**Fields**
+\## 7. Parser Rules \& Notifications
 
-- `NotificationSettingId` (GUID)
-- `CompanyId`
-- `EventType` (enum: `NewOrder`, `Rescheduled`, `LateDocket`, `KpiBreached`, `InvoiceDueSoon`, `InvoiceOverdue`, etc.)
-- `Channels` (list: `Email`, `WhatsApp`, `Sms`)
-- `RecipientUserIds` (list of UserIds)
-- `IsActive`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
 
----
 
-## 8. Cost Centres & PNL
+\### ParserRule
 
-These models support PNL grouping and reporting.
 
-### 8.1 CostCentre
 
-Used to group revenue and costs for PNL.
+\- `ParserRuleId`
 
-**Fields**
+\- `CompanyId`
 
-- `CostCentreId` (GUID)
-- `CompanyId`
-- `Name` (e.g. `"ISP Retail"`, `"ISP Corporate"`)
-- `Code` (short code for finance systems)
-- `IsActive`
-- `CreatedAt`, `UpdatedAt`
-- `CreatedBy`, `UpdatedBy`
+\- `PartnerId`
 
-> Later, orders, invoices, and materials can be tagged with `CostCentreId` for reporting.
+\- `RuleType` (Activation | Modification | Assurance | MRA)
 
----
+\- `FromPatterns` (JSON)
 
-## 9. Required Audit Fields & Conventions
+\- `SubjectPatterns` (JSON)
 
-### 9.1 Audit Fields (Standard)
+\- `ColumnMappings` (JSON)
 
-For **all company-scoped entities**, include:
+\- `IsActive`
 
-- `CompanyId`  
-- `CreatedAt` (DateTime)  
-- `UpdatedAt` (DateTime)  
-- `CreatedBy` (UserId, string/GUID)  
-- `UpdatedBy` (UserId, string/GUID)  
+\- Audit fields.
 
-Some “global” entities (like `Permission`) may omit `CompanyId` but still carry `CreatedAt` / `UpdatedAt` as needed.
 
-These are used for:
 
-- Multi-company scoping  
-- RBAC enforcement  
-- Full traceability (who changed what, when)  
-- Audit logs  
-- Director-level reporting across multiple companies  
+\### NotificationSetting
 
-### 9.2 Value Objects
 
-Common value objects used across entities:
 
-- `Address`
-  - `Line1`
-  - `Line2`
-  - `Postcode`
-  - `City`
-  - `State`
-- `Money` (optional for future)
-  - `Amount`
-  - `Currency`
-- `AppointmentWindow` (optional if needed)
-  - `Start`
-  - `End`
+\- `NotificationSettingId`
+
+\- `CompanyId`
+
+\- `EventType` (NewOrder | Rescheduled | LateDocket | KpiWarning | InvoiceDue)
+
+\- `Channels` (Email | WhatsApp | SMS)
+
+\- `Recipients` (list of UserIds or group)
+
+\- Audit fields.
+
+
 
 ---
 
-## 10. Phase 1 Domain Summary Table
 
-| Category                  | Entities                                                                 |
-|---------------------------|--------------------------------------------------------------------------|
-| Multi-company & RBAC      | Company, User, Role, Permission, RolePermission, UserCompanyRole        |
-| SI & Partners             | ServiceInstaller, Partner                                               |
-| Orders & Status           | Order, OrderStatusLog, OrderBlocker, OrderNote                         |
-| Buildings & Splitters     | Building, Splitter, SplitterPort                                       |
-| Materials & Inventory     | Material, MaterialStock, MaterialMovement                               |
-| RMA                       | RmaRequest                                                              |
-| Billing & Invoices        | Invoice, InvoiceLine                                                    |
-| Parser & Notifications    | ParserRule, NotificationSetting                                         |
-| PNL / Finance Structure   | CostCentre                                                              |
+
+\## 8. Cost Centres
+
+
+
+\### CostCentre
+
+
+
+\- `CostCentreId`
+
+\- `CompanyId`
+
+\- `Name`
+
+\- `Code`
+
+\- `IsActive`
+
+\- Audit fields.
+
+
+
+Used for PNL allocations and reporting.
+
+
 
 ---
 
-This `PHASE1_DOMAIN_MODELS.md` is the **single merged, full version** and should be treated as the **source of truth** for:
 
-- Domain layer (`CephasOps.Domain`) C# entities  
-- EF Core mappings in Infrastructure  
-- API contracts design (DTOs mapped from these entities)  
-- Storybook flows & UI pages alignment
 
-Any future changes to the Phase 1 domain should update **this document first**, then be reflected in code and API.
+\## 9. Audit Requirements
+
+
+
+All entities listed here:
+
+
+
+\- MUST include:
+
+&nbsp; - `CompanyId`
+
+&nbsp; - `CreatedAt`, `UpdatedAt`
+
+&nbsp; - `CreatedBy`, `UpdatedBy`
+
+\- MUST respect global query filters for company scoping.
+
+
+
