@@ -14,14 +14,15 @@ CephasOps is an enterprise operations platform built for the Cephas Group, suppo
 Built as a clean-architecture .NET backend + TypeScript React frontend with a mobile-first PWA for SIs.
 
 ---
-
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![Tech](https://img.shields.io/badge/Backend-.NET%208-blue)
-![Frontend](https://img.shields.io/badge/Frontend-React%20%2F%20Next.js-61DAFB)
-![Database](https://img.shields.io/badge/Database-SQL%20Server-blueviolet)
+![.NET](https://img.shields.io/badge/.NET-8.0-blueviolet)
+![React](https://img.shields.io/badge/React-Typescript-61dafb)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
+![Clean Architecture](https://img.shields.io/badge/Architecture-Clean-brightgreen)
+![Docker](https://img.shields.io/badge/Containerized-Docker-0db7ed)
+![CI/CD](https://img.shields.io/badge/GitHub-Actions-blue)
 ![License](https://img.shields.io/badge/License-Proprietary-orange)
 ![Coverage](https://img.shields.io/badge/Tests-InProgress-yellow)
-
 
 
 # 🔥 Features
