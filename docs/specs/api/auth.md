@@ -46,7 +46,3 @@ X-Site-Id: <siteId>         # Optional, for site/outlet context
 - `404 Not Found` – Resource not found or not visible in that company
 - `422 Unprocessable Entity` – Validation issues (e.g. illegal status transition)
 - `500 Internal Server Error` – Unexpected errors
-
----
-
-
