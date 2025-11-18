@@ -164,7 +164,7 @@ Integrations (Email Inbox, Partner Portal Uploads)
 ### 1️⃣ **Clone repository**
 ```bash
 git clone https://github.com/espritguy69/CephaOps.git
-cd csios
+cd CephaOps
 
 2️⃣ Backend Setup (.NET 8)
 
