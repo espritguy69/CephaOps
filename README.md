@@ -1,160 +1,321 @@
-📄 README.md — Cephas Service Installer Operations System (CSIOS)
----
-# CephasOps – Multi-Company ISP Operations System
 
-CephasOps is an enterprise operations platform built for the Cephas Group, supporting:
+# 📦 CephasOps (CSIOS) – Cephas Service Installer Operations System
+### *Unified Installer Workflow Platform for ISP Partners (TIME, CelcomDigi, etc.)*
 
-- ISP operations for TIME, CelcomDigi, U Mobile (Activation, Assurance, RMA)
-- Multi-company workflows (Cephas Sdn. Bhd, Cephas Trading, Kingsman, Menorah Travel)
-- Scheduler & SI mobile PWA
-- Inventory, buildings/splitters, RMA
-- Dockets → Invoicing → Submission ID → PNL
-- End-to-end automation with email parsing, KPI tracking & notifications
+CephasOps is an end-to-end workflow automation platform built for managing ISP Service Installer operations.  
+It provides one centralized system to control:
 
-Built as a clean-architecture .NET backend + TypeScript React frontend with a mobile-first PWA for SIs.
+- Email → Excel → Order automation  
+- Installer scheduling & job routing  
+- Building & splitter mapping  
+- Docket management  
+- Inventory & serial tracking  
+- KPI & status enforcement  
+- Partner invoicing  
+- Multi-company operations  
+- Background job automation
 
----
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![.NET](https://img.shields.io/badge/.NET-8.0-blueviolet)
-![React](https://img.shields.io/badge/React-Typescript-61dafb)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
-![Clean Architecture](https://img.shields.io/badge/Architecture-Clean-brightgreen)
-![Docker](https://img.shields.io/badge/Containerized-Docker-0db7ed)
-![CI/CD](https://img.shields.io/badge/GitHub-Actions-blue)
-![License](https://img.shields.io/badge/License-Proprietary-orange)
-![Coverage](https://img.shields.io/badge/Tests-InProgress-yellow)
-
-
-# 🔥 Features
-
-### ISP Operations
-- Activation, Assurance, Modification orders
-- Email-based parsing using mapping rules
-- Automatic material planning based on building type
-- Splitter & standby port management
-- Scheduler view with drag-and-drop assignment
-- SI App with GPS, camera, serial scanning
-
-### Finance & Billing
-- Docket capture + review workflow
-- Automated invoice line generation using partner rate sheets
-- Submission ID & aging tracker
-- RMA & MRA handling
-
-### Inventory
-- Warehouse + SI stock tracking
-- Serial & non-serial materials
-- Material movements (Warehouse → SI → Customer → RMA)
-
-### Multi-company scope
-- Separate company data
-- RBAC per company
-- Director view for cross-company PNL
+CephasOps is optimized for high-volume daily job ingestion (100–1000+/day).
 
 ---
 
-# 🧱 Tech Stack
+# 🚀 Key Features
 
-**Backend**
-- .NET 10 Web API  
-- EF Core + PostgreSQL  
-- Serilog  
-- Hangfire (jobs)  
-- JWT auth  
+### 📥 Email Parser
+- Parses Excel + raw email orders from partners  
+- Creates Parse Sessions  
+- Human review or Auto-Approve  
+- Snapshots of first worksheet page  
+- Automatic cleanup after 7 days
 
-**Frontend (Admin App)**
-- React + TypeScript  
-- Vite  
-- TanStack Query  
-- TailwindCSS  
+### 🧭 Order Management
+- Canonical order data model  
+- Multi-company, multi-site  
+- Full job lifecycle  
+- Status & KPI enforcement  
+- Attachments & snapshots
 
-**Service Installer App (PWA)**
-- React mobile PWA  
-- Camera + GPS  
-- Offline support (IndexedDB)  
+### 📅 Scheduler
+- Visual SI daily calendar  
+- Drag & assign  
+- Unassigned job pool  
+- Partner/time filters
 
-**Tooling**
-- Docker + Docker Compose  
-- GitHub Actions CI/CD  
+### 📦 Inventory Control
+- Warehouse + Installer level  
+- Serial tracking  
+- Stock movements  
+- Assurance swaps
+
+### 🏗 Buildings & Splitters
+- Port assignment  
+- Standby port logic  
+- 1:8 / 1:16 / 1:32 rules
+
+### 📄 Dockets
+- Upload, validate, review  
+- Partner portal alignment  
+- Rejections tracking
+
+### 💸 Invoicing
+- Invoice generation  
+- Partner uploads  
+- Payment tracking  
+- Invoice aging reports
+
+### 📊 Reporting
+- Daily dashboard  
+- KPI reports  
+- Inventory consumption  
+- Splitter usage
+
+### 🧩 Multi-Company Architecture
+- Company-level separation  
+- Per-site configurations  
+- Parser profiles by company/site  
+- Multi-tenant Ready
 
 ---
 
-# 📚 Documentation
+# 🏗 System Architecture Overview
 
-Full documentation is in `/docs`.
+```
+                +-------------------+
+                | Incoming Emails   |
+                | Partner Excel WOs |
+                +---------+---------+
+                          |
+                POST /api/email/parse-excel
+                          |
+                          v
+                  +---------------+
+                  | Parse Session |
+                  +---------------+
+                    | PendingReview
+                    | AutoApproved
+                          |
+       +------------------+--------------------+
+       | Approve (Manual) | Auto Approve       |
+       v                  v
++--------------+     +--------------+
+| Orders       |     | Orders       |
+| Created      |     | Created      |
++--------------+     +--------------+
+       |
+       v
++------------------+
+| Attach Snapshots |
++------------------+
+       |
+       v
++-------------------------------+
+| Daily SnapshotCleanupJob      |
+| (delete >7d temp snapshots)   |
++-------------------------------+
+```
 
-Start reading here:  
-👉 `/docs/README.md`
+Backend is built as a modular API with clean separation:
+
+- orders  
+- email_parser  
+- scheduler  
+- inventory  
+- buildings  
+- dockets  
+- invoices  
+- settings  
+- system (background jobs)
 
 ---
 
-# 🏗 Repository Structure
+# 📁 Repository Folder Structure
 
-/backend → ASP.NET Core 8 backend
-/frontend → React (Admin App)
-/frontend-si → Service Installer PWA
-/docs → Full architecture + specs + APIs + diagrams
-/docs/spec → Module specifications
-/docs/spec/api → Endpoint specifications
-/docs/spec/database → ERD + schema + migrations
-/docs/storybook → UI/UX definitions
-/docs/archive → Legacy / old versions
-
-yaml
-Copy code
+```
+CephasOps/
+│
+├── src/
+│   ├── api/
+│   ├── core/
+│   ├── modules/
+│   ├── jobs/
+│   ├── config/
+│   └── infrastructure/
+│
+├── docs/
+│   ├── specs/
+│   │   ├── api/
+│   │   ├── system/
+│   │   ├── architecture/
+│   │   └── modules/
+│   └── diagrams/
+│
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+│
+├── .env.example
+├── README.md
+└── package.json
+```
 
 ---
 
-# 🚀 Getting Started
+# 🛠 Installation & Setup
 
-## Backend
-cd backend
-dotnet restore
-dotnet ef database update
-dotnet run
+## 1. Clone Repository
+```
+git clone https://github.com/your-org/CephasOps.git
+cd CephasOps
+```
 
-shell
-Copy code
+---
 
-## Frontend
-cd frontend
+# ⚙️ Environment Variables
+Copy environment file:
+```
+cp .env.example .env
+```
+
+### Required Variables
+
+```
+APP_ENV=local
+APP_PORT=5000
+
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=cephasops
+POSTGRES_USER=cephas
+POSTGRES_PASSWORD=cephas123
+
+JWT_SECRET=super-secret-key
+FILE_STORAGE_PATH=/var/data/cephasops/files
+
+PARSER_SNAPSHOT_RETENTION_DAYS=7
+```
+
+---
+
+# 🐘 Database Setup (PostgreSQL)
+```
+npm run migrate
+```
+
+---
+
+# 🐳 Docker Setup
+
+### Start
+```
+docker-compose up -d
+```
+
+### Stop
+```
+docker-compose down
+```
+
+---
+
+# 🔐 Running in Production
+
+```
+docker-compose -f docker/docker-compose.prod.yml up -d
+```
+
+---
+
+# 🧪 Developer Guide
+
+```
 npm install
 npm run dev
-
-shell
-Copy code
-
-## SI App (PWA)
-cd frontend-si
-npm install
-npm run dev
-
-yaml
-Copy code
+npm run format
+npm run lint
+npm test
+```
 
 ---
 
-# 🧪 Tests
+# 📘 Email Parser Flow
 
-cd backend/CephasOps.Tests
-dotnet test
-
-yaml
-Copy code
-
----
-
-# 🤝 Contributing
-
-Please read:
-
-- `/docs/governance/CODE_OF_CONDUCT.md`
-- `/docs/governance/CONTRIBUTING.md`
-- `/docs/governance/REVIEW_CHECKLIST.md`
+1. Upload Excel → Parse Session  
+2. Human review  
+3. Auto-approve valid rows (optional)  
+4. Snapshot cleanup after 7 days  
 
 ---
 
-# 📄 License
+# 📦 Order Creation Logic
 
-This project is proprietary to **Cephas Group**.  
-All rights reserved.
+Orders can be created from:
+
+- Manual creation (`POST /api/orders`)
+- Email Parser → Parse Session → Approve
+- Email Parser AutoApprove
+- API Integrations (future)
+
+Each order includes a `source` block.
+
+---
+
+# 🧩 Multi-Company Architecture
+
+Each order belongs to:
+
+```
+companyId → siteId → order
+```
+
+Parser profiles and settings are scoped per company/site.
+
+---
+
+# ⏱ Background Jobs
+
+Documented in:
+
+```
+docs/specs/system/operations.md
+```
+
+Jobs include:
+
+- SnapshotCleanupJob  
+- Invoice notifier (optional)  
+- Docket validator (optional)
+
+---
+
+# 🧵 API Documentation
+
+Located in:
+
+```
+docs/specs/api/
+```
+
+---
+
+# 🚀 Deployment Checklist
+
+✔ Env configured  
+✔ Docker running  
+✔ DB migrated  
+✔ Parser profile JSON loaded  
+✔ Companies + Sites created  
+✔ Installer accounts ready  
+✔ Buildings imported  
+✔ Cron job enabled  
+
+---
+
+# 🎯 Summary
+
+CephasOps provides a complete operational stack for ISP installer workflows, with:
+
+- High-volume order ingestion  
+- Status + KPI lifecycle  
+- Multi-company architecture  
+- Full documentation  
+- Scalable Docker deployment  
