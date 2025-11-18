@@ -46,3 +46,38 @@ X-Site-Id: <siteId>         # Optional, for site/outlet context
 - `404 Not Found` – Resource not found or not visible in that company
 - `422 Unprocessable Entity` – Validation issues (e.g. illegal status transition)
 - `500 Internal Server Error` – Unexpected errors
+
+---
+
+### 4. Example JWT Payload
+
+```json
+{
+  "sub": "user-123",
+  "role": "Admin",
+  "companyId": "CEPHAS",
+  "siteId": "SUBANG-WH",
+  "permissions": ["Orders.Read", "Orders.Write", "Parser.Approve"],
+  "exp": 1767225600
+}
+```
+---
+### 5. Roles & Scopes
+
+
+| Role      | Typical Permissions                            |
+|-----------|-----------------------------------------------|
+| Admin     | Full access for a company                     |
+| Backoffice| Orders, parser approvals, dockets, invoices   |
+| Installer | My jobs, my inventory, upload dockets         |
+| Viewer    | Read-only dashboards & reports                |
+
+---
+
+### 6. Example Curl For a Normal Authenticated Call
+
+curl -H "Authorization: Bearer <token>" \
+     -H "X-Company-Id: CEPHAS" \
+     https://api.csios.cephas.com.my/api/orders
+
+---

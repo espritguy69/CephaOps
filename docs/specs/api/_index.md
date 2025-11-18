@@ -5,6 +5,17 @@ This folder contains the **high-level REST API specification** for:
 - **CSIOS** – Cephas Service Installer Operations System (ISP vertical)
 - Future verticals (Kingsman Retail, Menorah Travel) that will extend the same patterns
 
+---
+
+## How to Use These Specs
+
+- Start with `auth.md` to understand headers and auth.
+- Then read `orders.md` for the core job entity.
+- Next, read `email_parser.md` to see how orders are ingested from emails.
+- Use `status_kpi.md`, `scheduler.md`, `dockets.md`, and `invoicing.md` to understand the full lifecycle.
+
+---
+
 The API is:
 
 - **Multi-company aware** (Cephas, Kingsman, Menorah, etc.)
@@ -64,3 +75,12 @@ APIs use:
 
 - Headers: `X-Company-Id`, `X-Site-Id`
 - Or explicit `companyId`, `siteId` in query/body, where needed
+
+----
+
+## Change Log (API Spec Level)
+
+- 2025-11-19: Email Parser refactored to use Parse Sessions + Snapshots + Cleanup job.
+- 2025-11-19: Orders API updated with `source` block & `sourceType` filters.
+
+---
