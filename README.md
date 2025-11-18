@@ -188,10 +188,9 @@ POSTGRES_DB=cephasops
 POSTGRES_USER=cephas
 POSTGRES_PASSWORD=cephas123
 
-JWT_SECRET=super-secret-key
-FILE_STORAGE_PATH=/var/data/cephasops/files
-
-PARSER_SNAPSHOT_RETENTION_DAYS=7
+- `JWT_SECRET` – **required**, without this the API will not start.
+- `FILE_STORAGE_PATH` – **required** for snapshots and attachments.
+- `PARSER_SNAPSHOT_RETENTION_DAYS` – optional, defaults to 7.
 ```
 
 ---
@@ -301,6 +300,10 @@ Located in:
 
 ```
 docs/specs/api/
+- [Orders API](docs/specs/api/orders.md)
+- [Email Parser API](docs/specs/api/email_parser.md)
+- [Auth & Multi-Company](docs/specs/api/auth.md)
+- [Background Jobs](docs/specs/system/operations.md)
 ```
 
 ---
@@ -318,6 +321,13 @@ docs/specs/api/
 
 ---
 
+## 👥 Who Should Read This?
+
+- **Developers**: building and maintaining CephasOps backend.
+- **Ops / CS team**: to understand how orders flow from email to completion.
+- **Vendors / Integrators**: to plug in via API and understand data flow.
+
+---
 # 🎯 Summary
 
 CephasOps provides a complete operational stack for ISP installer workflows, with:
