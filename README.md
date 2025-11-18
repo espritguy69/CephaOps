@@ -56,7 +56,7 @@ Built as a clean-architecture .NET backend + TypeScript React frontend with a mo
 # 🧱 Tech Stack
 
 **Backend**
-- .NET 8 Web API  
+- .NET 10 Web API  
 - EF Core + PostgreSQL  
 - Serilog  
 - Hangfire (jobs)  

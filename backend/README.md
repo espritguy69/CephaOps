@@ -6,7 +6,7 @@ This folder contains the backend services for CephasOps, implemented using:
 
 
 
-\- .NET 8 Web API
+\- .NET 10 Web API
 
 \- Clean architecture
 
