@@ -286,7 +286,15 @@ Jobs include:
 - Docket validator (optional)
 
 ---
+## 🧱 Tech Stack
 
+- Backend: (.NET 10 / Node / Nest / FastAPI – whichever you are actually using)
+- DB: PostgreSQL
+- Auth: JWT (Bearer)
+- Docs: Markdown under `docs/specs`
+- Container: Docker + docker-compose
+
+---
 # 🧵 API Documentation
 
 Located in:
