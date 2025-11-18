@@ -1,2 +1,6 @@
 # 🔀 CephasOps Pull Request
-... (full text from previous message)
+Pull Request
+Summary
+Changes
+Testing
+Related Issues

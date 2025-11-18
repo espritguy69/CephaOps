@@ -1,2 +1,8 @@
 # 🚀 CephasOps Release Notes  
-... (full text from previous message)
+Release Template
+Version
+Date
+Summary
+Features
+Fixes
+Migration Notes

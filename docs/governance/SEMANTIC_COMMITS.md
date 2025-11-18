@@ -1,2 +1,10 @@
 # 🏷️ Semantic Commit Rules – CephasOps
-... (full text from previous message)
+Use prefixes:
+⦁	feat: new feature
+⦁	fix: bug fix
+⦁	docs: documentation
+⦁	refactor: internal changes
+⦁	perf: performance
+⦁	test: tests
+⦁	chore: maintenance
+Example: feat(orders): add status change endpoint
